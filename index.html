@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cell Biology Online Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --card: #1a2234;
+    --border: #2a3650;
+    --accent: #00d4aa;
+    --accent2: #4f8ef7;
+    --danger: #ff4d6d;
+    --warning: #ffb830;
+    --text: #e8edf5;
+    --muted: #6b7a99;
+    --correct: #00c896;
+    --wrong: #ff4d6d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 20% 20%, rgba(0,212,170,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(79,142,247,0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── SCREENS ─── */
+  .screen { display: none; position: relative; z-index: 1; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+
+  /* ─── HOME ─── */
+  .home-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 56px 48px;
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.4);
+    animation: fadeUp 0.6s ease;
+  }
+  .cell-icon {
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    margin: 0 auto 24px;
+    box-shadow: 0 0 40px rgba(0,212,170,0.3);
+  }
+  h1 { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+  .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 32px; line-height: 1.6; }
+  .stats-row {
+    display: flex; gap: 16px; margin-bottom: 32px;
+  }
+  .stat-box {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px; text-align: center;
+  }
+  .stat-val { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+  .name-input {
+    width: 100%; padding: 14px 20px; background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: 12px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 1rem;
+    margin-bottom: 16px; transition: border-color 0.2s;
+    outline: none;
+  }
+  .name-input:focus { border-color: var(--accent); }
+  .btn {
+    width: 100%; padding: 16px; border: none; border-radius: 12px;
+    font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #0a0e1a;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,212,170,0.35); }
+  .btn-secondary {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    margin-top: 10px;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── QUIZ ─── */
+  .quiz-wrap { width: 100%; max-width: 700px; animation: fadeUp 0.4s ease; }
+  .quiz-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+  }
+  .q-counter { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--muted); }
+  .q-counter span { color: var(--accent); }
+  .timer-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 16px;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem;
+  }
+  .timer-box.warn { border-color: var(--warning); color: var(--warning); }
+  .timer-box.danger { border-color: var(--danger); color: var(--danger); animation: pulse 0.5s infinite alternate; }
+  .progress-bar {
+    height: 4px; background: var(--border); border-radius: 99px;
+    margin-bottom: 28px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 99px; transition: width 0.4s ease;
+  }
+  .q-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 36px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+  }
+  .topic-tag {
+    display: inline-block; background: rgba(0,212,170,0.12);
+    color: var(--accent); border-radius: 6px; padding: 4px 12px;
+    font-size: 0.75rem; font-weight: 600; margin-bottom: 16px; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .q-text { font-size: 1.1rem; line-height: 1.7; margin-bottom: 28px; font-weight: 500; }
+  .options { display: flex; flex-direction: column; gap: 12px; }
+  .option {
+    padding: 16px 20px; background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: 12px;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 14px;
+  }
+  .option:hover { border-color: var(--accent2); background: rgba(79,142,247,0.08); }
+  .option.selected { border-color: var(--accent2); background: rgba(79,142,247,0.12); }
+  .option.correct { border-color: var(--correct); background: rgba(0,200,150,0.12); }
+  .option.wrong { border-color: var(--wrong); background: rgba(255,77,109,0.12); }
+  .opt-letter {
+    width: 32px; height: 32px; border-radius: 8px; background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
+  }
+  .option.selected .opt-letter { background: var(--accent2); color: #fff; }
+  .option.correct .opt-letter { background: var(--correct); color: #fff; }
+  .option.wrong .opt-letter { background: var(--wrong); color: #fff; }
+  .quiz-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  .btn-next {
+    padding: 14px 32px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #0a0e1a; border: none; border-radius: 12px;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem;
+    cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px;
+  }
+  .btn-next:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,212,170,0.3); }
+  .btn-next:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .answered-info { color: var(--muted); font-size: 0.85rem; }
+
+  /* ─── RESULT ─── */
+  .result-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 24px; padding: 48px 40px;
+    max-width: 640px; width: 100%;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.4);
+    animation: fadeUp 0.6s ease;
+  }
+  .score-circle {
+    width: 140px; height: 140px; border-radius: 50%;
+    background: conic-gradient(var(--accent) var(--pct), var(--border) 0);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 28px; position: relative;
+  }
+  .score-circle::before {
+    content: '';
+    position: absolute;
+    inset: 12px;
+    background: var(--card);
+    border-radius: 50%;
+  }
+  .score-inner {
+    position: relative; z-index: 1; text-align: center;
+  }
+  .score-num { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; }
+  .score-denom { font-size: 0.8rem; color: var(--muted); }
+  .rank-badge {
+    text-align: center; margin-bottom: 28px;
+  }
+  .rank-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+  .rank-val { font-family: 'Syne', sans-serif; font-size: 2.5rem; font-weight: 800; color: var(--accent); }
+  .result-stats {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 28px;
+  }
+  .r-stat {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; text-align: center;
+  }
+  .r-stat-val { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 700; }
+  .r-stat-val.c { color: var(--correct); }
+  .r-stat-val.w { color: var(--wrong); }
+  .r-stat-val.s { color: var(--accent2); }
+  .r-stat-label { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+  /* ─── SOLUTIONS ─── */
+  .sol-header {
+    font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  }
+  .sol-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px; margin-bottom: 12px;
+  }
+  .sol-q { font-size: 0.9rem; font-weight: 500; margin-bottom: 12px; line-height: 1.6; }
+  .sol-answers { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  .sol-opt {
+    font-size: 0.82rem; padding: 8px 14px; border-radius: 8px;
+    border: 1px solid var(--border); display: flex; align-items: center; gap: 8px;
+  }
+  .sol-opt.correct-ans { border-color: var(--correct); background: rgba(0,200,150,0.1); color: var(--correct); }
+  .sol-opt.user-wrong { border-color: var(--wrong); background: rgba(255,77,109,0.1); color: var(--wrong); }
+  .sol-explanation {
+    font-size: 0.82rem; color: var(--muted); border-top: 1px solid var(--border);
+    padding-top: 10px; margin-top: 4px; line-height: 1.6;
+  }
+  .sol-explanation strong { color: var(--accent); }
+
+  /* ─── LEADERBOARD ─── */
+  .lb-screen { width: 100%; max-width: 640px; }
+  .lb-title { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; margin-bottom: 20px; text-align: center; }
+  .lb-table {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+  }
+  .lb-row {
+    display: grid; grid-template-columns: 48px 1fr 80px 80px;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    align-items: center; font-size: 0.9rem;
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-row.header { background: var(--surface); font-size: 0.75rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .lb-row.highlight { background: rgba(0,212,170,0.07); }
+  .rank-num { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; }
+  .rank-num.gold { color: #ffd700; }
+  .rank-num.silver { color: #c0c0c0; }
+  .rank-num.bronze { color: #cd7f32; }
+  .score-pct { color: var(--accent); font-weight: 600; }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    from { opacity: 1; } to { opacity: 0.6; }
+  }
+
+  .section-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .text-center { text-align: center; }
+  .mt-12 { margin-top: 12px; }
+  .flex-gap { display: flex; gap: 10px; }
+
+  @media (max-width: 600px) {
+    .home-card, .result-card { padding: 32px 20px; }
+    .q-card { padding: 24px 18px; }
+    .result-stats { grid-template-columns: repeat(2,1fr); }
+    h1 { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ HOME SCREEN ═══ -->
+<div class="screen active" id="homeScreen">
+  <div class="home-card">
+    <div class="cell-icon">🔬</div>
+    <h1>Cell Biology Test</h1>
+    <p class="subtitle">10 randomly selected questions · 15 minutes · Topics: Cell structure, organelles, division & more</p>
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-val" id="totalAttempts">0</div>
+        <div class="stat-label">Students Attempted</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="avgScore">—</div>
+        <div class="stat-label">Average Score</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">10</div>
+        <div class="stat-label">Questions</div>
+      </div>
+    </div>
+    <input type="text" class="name-input" id="studentName" placeholder="Enter your name to begin…" maxlength="40"/>
+    <button class="btn btn-primary" onclick="startTest()">Start Test →</button>
+    <button class="btn btn-secondary" onclick="showLeaderboard()">🏆 Leaderboard</button>
+  </div>
+</div>
+
+<!-- ═══ QUIZ SCREEN ═══ -->
+<div class="screen" id="quizScreen">
+  <div class="quiz-wrap">
+    <div class="quiz-header">
+      <div class="q-counter">Question <span id="qNum">1</span> of <span id="qTotal">10</span></div>
+      <div class="timer-box" id="timerBox">⏱ <span id="timerVal">15:00</span></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:10%"></div></div>
+    <div class="q-card">
+      <div class="topic-tag" id="qTopic"></div>
+      <div class="q-text" id="qText"></div>
+      <div class="options" id="optionsContainer"></div>
+    </div>
+    <div class="quiz-footer">
+      <div class="answered-info" id="answeredInfo"></div>
+      <button class="btn-next" id="nextBtn" onclick="nextQuestion()" disabled>Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RESULT SCREEN ═══ -->
+<div class="screen" id="resultScreen">
+  <div class="result-card">
+    <h1 style="text-align:center;margin-bottom:8px;">Your Results</h1>
+    <p style="text-align:center;color:var(--muted);margin-bottom:28px;font-size:0.9rem;" id="resultName"></p>
+    <div class="score-circle" id="scoreCircle">
+      <div class="score-inner">
+        <div class="score-num" id="scoreNum"></div>
+        <div class="score-denom" id="scoreDenom"></div>
+      </div>
+    </div>
+    <div class="rank-badge">
+      <div class="rank-label">Your Rank</div>
+      <div class="rank-val" id="rankVal"></div>
+    </div>
+    <div class="result-stats">
+      <div class="r-stat"><div class="r-stat-val c" id="resCorrect"></div><div class="r-stat-label">Correct</div></div>
+      <div class="r-stat"><div class="r-stat-val w" id="resWrong"></div><div class="r-stat-label">Wrong</div></div>
+      <div class="r-stat"><div class="r-stat-val s" id="resSkipped"></div><div class="r-stat-label">Skipped</div></div>
+    </div>
+    <hr class="section-divider">
+    <div class="sol-header">📖 Question Solutions</div>
+    <div id="solutionsContainer"></div>
+    <hr class="section-divider">
+    <div class="flex-gap">
+      <button class="btn btn-primary" style="flex:1" onclick="retakeTest()">Retake Test</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="showLeaderboard()">🏆 Leaderboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LEADERBOARD SCREEN ═══ -->
+<div class="screen" id="lbScreen">
+  <div class="lb-screen">
+    <div class="lb-title">🏆 Leaderboard</div>
+    <div class="lb-table">
+      <div class="lb-row header">
+        <div>Rank</div><div>Name</div><div style="text-align:center">Score</div><div style="text-align:center">%</div>
+      </div>
+      <div id="lbBody"></div>
+    </div>
+    <button class="btn btn-secondary mt-12" onclick="goHome()">← Back to Home</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  QUESTION BANK (50 questions, 10 per test)
+// ═══════════════════════════════════════════
+const questionBank = [
+  // Discovery of Cell
+  { topic:"Discovery of Cell", q:"Who discovered the cell in 1665?", opts:["Robert Hooke","Anton van Leeuwenhoek","Matthias Schleiden","Rudolf Virchow"], ans:0, exp:"Robert Hooke observed dead cork cells under a microscope in 1665 and coined the term 'cell'." },
+  { topic:"Discovery of Cell", q:"Who was the first to observe living cells?", opts:["Robert Hooke","Anton van Leeuwenhoek","Theodor Schwann","Rudolf Virchow"], ans:1, exp:"Anton van Leeuwenhoek was first to observe living cells (bacteria, protozoa) using his improved microscopes in the 1670s." },
+  { topic:"Discovery of Cell", q:"The cell theory was proposed by:", opts:["Hooke and Leeuwenhoek","Schleiden and Schwann","Virchow and Watson","Darwin and Mendel"], ans:1, exp:"Matthias Schleiden (1838) and Theodor Schwann (1839) together proposed that all living things are made of cells." },
+  { topic:"Discovery of Cell", q:"Rudolf Virchow's contribution to cell theory was:", opts:["Cells are the smallest unit","All cells arise from pre-existing cells","Cells contain a nucleus","Cells carry genetic information"], ans:1, exp:"Virchow (1855) added 'Omnis cellula e cellula' — all cells arise from pre-existing cells — completing the cell theory." },
+  { topic:"Discovery of Cell", q:"What did Hooke observe under the microscope in cork?", opts:["Living plant cells","Dead empty chambers","Bacteria","Chloroplasts"], ans:1, exp:"Hooke saw tiny dead, empty chambers in cork slices which he named 'cells', resembling small rooms." },
+
+  // Plant and Animal Cells
+  { topic:"Plant & Animal Cells", q:"Which organelle is present in plant cells but NOT in animal cells?", opts:["Mitochondria","Ribosome","Chloroplast","Nucleus"], ans:2, exp:"Chloroplasts are found only in plant cells (and algae) and are responsible for photosynthesis." },
+  { topic:"Plant & Animal Cells", q:"Cell wall in plant cells is made of:", opts:["Chitin","Cellulose","Peptidoglycan","Phospholipid"], ans:1, exp:"Plant cell walls are primarily composed of cellulose, a polysaccharide that provides structural support." },
+  { topic:"Plant & Animal Cells", q:"Which of the following is found in animal cells but NOT plant cells?", opts:["Vacuole","Centriole","Cell membrane","Nucleus"], ans:1, exp:"Centrioles are present in animal cells and help in cell division; most plant cells lack centrioles." },
+  { topic:"Plant & Animal Cells", q:"The large central vacuole in a plant cell mainly functions to:", opts:["Produce energy","Maintain turgor pressure","Synthesise proteins","Carry out photosynthesis"], ans:1, exp:"The large central vacuole stores water and maintains turgor pressure, giving the plant rigidity." },
+  { topic:"Plant & Animal Cells", q:"Which statement about plant and animal cells is TRUE?", opts:["Both have cell walls","Both have mitochondria","Plants lack a nucleus","Animals have chloroplasts"], ans:1, exp:"Both plant and animal cells possess mitochondria, used for cellular respiration and energy production." },
+
+  // Prokaryotic and Eukaryotic
+  { topic:"Prokaryotic & Eukaryotic", q:"Which of the following is a prokaryotic organism?", opts:["Amoeba","Yeast","Bacteria","Mushroom"], ans:2, exp:"Bacteria are prokaryotes — they lack a membrane-bound nucleus and membrane-enclosed organelles." },
+  { topic:"Prokaryotic & Eukaryotic", q:"Prokaryotic cells differ from eukaryotic cells in that they:", opts:["Have no DNA","Lack a membrane-bound nucleus","Have larger ribosomes","Possess mitochondria"], ans:1, exp:"Prokaryotes lack a true nucleus; their genetic material (DNA) lies in the nucleoid region without a membrane." },
+  { topic:"Prokaryotic & Eukaryotic", q:"The size of ribosomes in prokaryotic cells is:", opts:["80S","70S","60S","90S"], ans:1, exp:"Prokaryotic ribosomes are 70S (50S + 30S subunits), smaller than eukaryotic 80S ribosomes." },
+  { topic:"Prokaryotic & Eukaryotic", q:"Which of the following is NOT found in prokaryotes?", opts:["Ribosome","Cell membrane","Mitochondria","DNA"], ans:2, exp:"Mitochondria are membrane-bound organelles found only in eukaryotic cells; prokaryotes lack them." },
+  { topic:"Prokaryotic & Eukaryotic", q:"Plasmids are found in:", opts:["Eukaryotic cells only","Prokaryotic cells","Both","Neither"], ans:1, exp:"Plasmids are small, circular, extra-chromosomal DNA molecules found mainly in prokaryotic cells like bacteria." },
+
+  // Cell as structural/functional unit
+  { topic:"Cell as Unit of Life", q:"Which statement best defines a cell?", opts:["Smallest unit of heredity","Basic structural and functional unit of life","Largest unit of an organism","Unit of the immune system"], ans:1, exp:"A cell is the basic structural and functional unit of all living organisms, capable of performing life functions." },
+  { topic:"Cell as Unit of Life", q:"Unicellular organisms perform:", opts:["Only reproduction","All life functions in a single cell","Only digestion","Only respiration"], ans:1, exp:"Unicellular organisms like Amoeba and Paramecium carry out all life functions — nutrition, respiration, excretion — within a single cell." },
+  { topic:"Cell as Unit of Life", q:"Which is the largest known cell?", opts:["Nerve cell","Ostrich egg","Red blood cell","Muscle cell"], ans:1, exp:"An ostrich egg is the largest known single cell, measuring about 15 cm in diameter." },
+  { topic:"Cell as Unit of Life", q:"Who said 'Where a cell exists, there must have been a pre-existing cell'?", opts:["Schleiden","Schwann","Virchow","Hooke"], ans:2, exp:"Rudolf Virchow stated this, meaning cells only arise from existing cells — a key principle of cell theory." },
+  { topic:"Cell as Unit of Life", q:"Cells are to organisms as:", opts:["Atoms are to molecules","Bricks are to buildings","Both A and B","Neither"], ans:2, exp:"Cells are the building blocks of living organisms, just as atoms form molecules and bricks form buildings." },
+
+  // Nucleus
+  { topic:"Nucleus", q:"The nucleus is bounded by:", opts:["A single membrane","A double membrane","No membrane","A cell wall"], ans:1, exp:"The nucleus is enclosed by a double-layered nuclear envelope (two lipid bilayer membranes) with nuclear pores." },
+  { topic:"Nucleus", q:"The primary function of the nucleus is:", opts:["Energy production","Control of cell activities and heredity","Protein synthesis","Photosynthesis"], ans:1, exp:"The nucleus contains DNA and controls all cellular activities; it is the control centre of the cell." },
+  { topic:"Nucleus", q:"Chromosomes are made of:", opts:["RNA and proteins","DNA and proteins","Lipids and carbohydrates","DNA only"], ans:1, exp:"Chromosomes consist of DNA tightly wound around histone proteins, forming chromatin." },
+  { topic:"Nucleus", q:"The nucleolus is involved in:", opts:["DNA replication","Ribosome synthesis","Lipid synthesis","Cell division"], ans:1, exp:"The nucleolus is the site of ribosomal RNA (rRNA) synthesis and ribosome assembly." },
+  { topic:"Nucleus", q:"Nuclear pores allow passage of:", opts:["Only proteins","Only RNA","mRNA and proteins","Lipids only"], ans:2, exp:"Nuclear pores are channels that regulate the transport of mRNA (out) and proteins like transcription factors (in)." },
+
+  // Mitochondria
+  { topic:"Mitochondria", q:"Mitochondria are called the 'powerhouse of the cell' because they:", opts:["Store nutrients","Produce ATP via cellular respiration","Synthesise proteins","Carry out photosynthesis"], ans:1, exp:"Mitochondria generate ATP through cellular respiration (Krebs cycle + oxidative phosphorylation), supplying energy to the cell." },
+  { topic:"Mitochondria", q:"The inner membrane of mitochondria is folded into:", opts:["Grana","Cristae","Lamellae","Thylakoids"], ans:1, exp:"The inner mitochondrial membrane folds inward to form cristae, increasing surface area for ATP synthesis." },
+  { topic:"Mitochondria", q:"Mitochondria contain their own:", opts:["Golgi body","DNA and ribosomes","Nucleus","Cell wall"], ans:1, exp:"Mitochondria have their own circular DNA and 70S ribosomes, supporting the endosymbiotic theory of their origin." },
+  { topic:"Mitochondria", q:"The matrix of mitochondria is the site of:", opts:["Electron transport chain","Krebs (citric acid) cycle","Glycolysis","Fermentation"], ans:1, exp:"The Krebs cycle takes place in the mitochondrial matrix, where acetyl-CoA is oxidised to CO₂ and NADH." },
+  { topic:"Mitochondria", q:"Which process occurs on the inner mitochondrial membrane?", opts:["DNA replication","Krebs cycle","Oxidative phosphorylation","Glycolysis"], ans:2, exp:"Oxidative phosphorylation — involving the electron transport chain and ATP synthase — occurs on the inner mitochondrial membrane (cristae)." },
+
+  // Chloroplast
+  { topic:"Chloroplast", q:"Chloroplasts are found in:", opts:["All eukaryotic cells","Only plant and algal cells","Only animal cells","Only prokaryotes"], ans:1, exp:"Chloroplasts are present in plant cells and algae; they are the site of photosynthesis." },
+  { topic:"Chloroplast", q:"Chlorophyll pigments are located in the:", opts:["Stroma","Thylakoid membranes","Matrix","Cristae"], ans:1, exp:"Chlorophyll is embedded in the thylakoid membranes within chloroplasts, where it absorbs light energy." },
+  { topic:"Chloroplast", q:"The light-independent (dark) reactions of photosynthesis occur in the:", opts:["Thylakoid","Stroma","Cristae","Cytoplasm"], ans:1, exp:"The Calvin cycle (carbon fixation) takes place in the stroma of the chloroplast using ATP and NADPH from light reactions." },
+  { topic:"Chloroplast", q:"Grana in chloroplasts are:", opts:["Stacks of thylakoids","Folds of inner membrane","Regions of the stroma","DNA molecules"], ans:0, exp:"Grana (singular: granum) are stacks of disc-like thylakoid membranes where the light reactions of photosynthesis occur." },
+  { topic:"Chloroplast", q:"Chloroplasts, like mitochondria, have their own DNA. This supports:", opts:["Cell theory","Endosymbiotic theory","Fluid mosaic model","Gene theory"], ans:1, exp:"The presence of their own DNA and 70S ribosomes in chloroplasts supports the endosymbiotic theory of their bacterial origin." },
+
+  // Endoplasmic Reticulum
+  { topic:"Endoplasmic Reticulum", q:"Rough ER is called 'rough' because of:", opts:["Its texture","Ribosomes on its surface","Its chemical composition","Its location"], ans:1, exp:"Ribosomes studded on the surface of rough ER give it a rough appearance; they synthesise proteins destined for secretion." },
+  { topic:"Endoplasmic Reticulum", q:"Smooth ER is primarily involved in:", opts:["Protein synthesis","Lipid synthesis and detoxification","DNA replication","Carbohydrate digestion"], ans:1, exp:"Smooth ER synthesises lipids, phospholipids, and steroids, and detoxifies harmful substances in liver cells." },
+  { topic:"Endoplasmic Reticulum", q:"The ER is connected to:", opts:["The cell wall","The nuclear envelope","The cell membrane only","Chloroplasts"], ans:1, exp:"The ER is continuous with the outer nuclear envelope, allowing direct transport between the nucleus and ER lumen." },
+  { topic:"Endoplasmic Reticulum", q:"Proteins synthesised on rough ER are destined for:", opts:["Use in cytoplasm only","Secretion or membrane insertion","Mitochondria only","DNA synthesis"], ans:1, exp:"Rough ER processes and modifies proteins that will be secreted outside the cell or inserted into membranes." },
+
+  // Vacuoles
+  { topic:"Vacuoles", q:"In plant cells, the central vacuole occupies approximately:", opts:["10% of cell volume","Up to 90% of cell volume","50% of cell volume","5% of cell volume"], ans:1, exp:"The central vacuole can occupy up to 90% of a plant cell's volume, maintaining turgor and storing nutrients/waste." },
+  { topic:"Vacuoles", q:"The membrane surrounding the vacuole is called:", opts:["Tonoplast","Plasmalemma","Nuclear envelope","Thylakoid membrane"], ans:0, exp:"The tonoplast is the membrane enclosing the plant cell vacuole; it regulates the movement of ions and molecules in and out." },
+  { topic:"Vacuoles", q:"Contractile vacuoles in protists are used for:", opts:["Digestion","Osmoregulation (expelling excess water)","Energy storage","Reproduction"], ans:1, exp:"Contractile vacuoles pump out excess water from freshwater protists, preventing the cell from bursting due to osmosis." },
+
+  // Plasma Membrane & Cell Wall
+  { topic:"Plasma Membrane", q:"The fluid mosaic model of the cell membrane was proposed by:", opts:["Schleiden and Schwann","Singer and Nicolson","Watson and Crick","Hooke and Leeuwenhoek"], ans:1, exp:"S.J. Singer and G.L. Nicolson proposed the fluid mosaic model in 1972, describing the membrane as a fluid phospholipid bilayer with embedded proteins." },
+  { topic:"Plasma Membrane", q:"The cell membrane is primarily composed of:", opts:["Proteins only","Carbohydrates only","Phospholipid bilayer with proteins","DNA and RNA"], ans:2, exp:"The plasma membrane consists of a phospholipid bilayer with integral and peripheral proteins, forming a fluid mosaic." },
+  { topic:"Plasma Membrane", q:"Which type of transport requires energy (ATP)?", opts:["Osmosis","Simple diffusion","Active transport","Facilitated diffusion"], ans:2, exp:"Active transport moves substances against their concentration gradient and requires ATP energy." },
+
+  // Permeability
+  { topic:"Permeability of Cell Membrane", q:"Osmosis is the movement of:", opts:["Solutes from high to low concentration","Water from high to low water potential","Proteins across membranes","Glucose against its gradient"], ans:1, exp:"Osmosis is the passive movement of water molecules across a semi-permeable membrane from a region of high water potential (dilute solution) to low water potential (concentrated solution)." },
+  { topic:"Permeability of Cell Membrane", q:"A cell placed in a hypertonic solution will:", opts:["Swell","Burst","Shrink (plasmolysis)","Remain unchanged"], ans:2, exp:"In a hypertonic solution, water moves out of the cell by osmosis, causing the cell to shrink — this is called plasmolysis in plants." },
+  { topic:"Permeability of Cell Membrane", q:"Selective permeability means:", opts:["The membrane allows all substances through","Only some substances can pass through","No substance can pass through","Only gases can pass through"], ans:1, exp:"Selective permeability means the plasma membrane regulates what enters and exits the cell, allowing some molecules through while blocking others." },
+
+  // Cell Division
+  { topic:"Cellular Division", q:"In which phase of mitosis do chromosomes align at the cell's equator?", opts:["Prophase","Metaphase","Anaphase","Telophase"], ans:1, exp:"During metaphase, chromosomes align at the metaphase plate (equatorial plane), pulled by spindle fibres from both poles." },
+  { topic:"Cellular Division", q:"Meiosis results in:", opts:["2 diploid daughter cells","4 haploid daughter cells","2 haploid daughter cells","4 diploid daughter cells"], ans:1, exp:"Meiosis produces 4 genetically unique haploid cells (gametes), each with half the chromosome number of the parent cell." },
+  { topic:"Cellular Division", q:"The S phase of interphase is when:", opts:["Cell grows","DNA replication occurs","Cell divides","Organelles are made"], ans:1, exp:"During the S (synthesis) phase of interphase, all DNA is replicated so each chromosome is duplicated before cell division." },
+  { topic:"Cellular Division", q:"Cytokinesis in plant cells involves:", opts:["Cleavage furrow","Cell plate formation","Spindle fibre contraction","Nuclear envelope breakdown"], ans:1, exp:"In plant cells, cytokinesis occurs by forming a cell plate (new cell wall) between the two daughter nuclei, unlike the cleavage furrow in animal cells." },
+  { topic:"Cellular Division", q:"Crossing over during meiosis occurs in:", opts:["Metaphase I","Prophase I","Anaphase II","Telophase I"], ans:1, exp:"Crossing over (genetic recombination) occurs during Prophase I of meiosis, when homologous chromosomes exchange segments at chiasmata." },
+];
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let currentQuestions = [];
+let currentIndex = 0;
+let answers = [];      // user's selected answer index (or -1 for skipped)
+let timerInterval;
+let secondsLeft;
+let studentName = "";
+let allResults = JSON.parse(localStorage.getItem("cellTestResults") || "[]");
+
+// ═══════════════════════════════════════════
+//  HOME
+// ═══════════════════════════════════════════
+function updateHomeStats() {
+  document.getElementById("totalAttempts").textContent = allResults.length;
+  if (allResults.length > 0) {
+    const avg = allResults.reduce((s,r) => s + r.score, 0) / allResults.length;
+    document.getElementById("avgScore").textContent = avg.toFixed(1);
+  } else {
+    document.getElementById("avgScore").textContent = "—";
+  }
+}
+
+function startTest() {
+  studentName = document.getElementById("studentName").value.trim();
+  if (!studentName) { alert("Please enter your name!"); return; }
+  // pick 10 random
+  const shuffled = [...questionBank].sort(() => Math.random() - 0.5);
+  currentQuestions = shuffled.slice(0, 10);
+  answers = new Array(10).fill(-1);
+  currentIndex = 0;
+  showScreen("quizScreen");
+  document.getElementById("qTotal").textContent = 10;
+  loadQuestion();
+  startTimer(15 * 60);
+}
+
+// ═══════════════════════════════════════════
+//  TIMER
+// ═══════════════════════════════════════════
+function startTimer(seconds) {
+  secondsLeft = seconds;
+  clearInterval(timerInterval);
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    secondsLeft--;
+    updateTimerDisplay();
+    if (secondsLeft <= 0) { clearInterval(timerInterval); submitTest(); }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(secondsLeft / 60);
+  const s = secondsLeft % 60;
+  document.getElementById("timerVal").textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  const box = document.getElementById("timerBox");
+  box.className = "timer-box";
+  if (secondsLeft <= 60) box.classList.add("danger");
+  else if (secondsLeft <= 180) box.classList.add("warn");
+}
+
+// ═══════════════════════════════════════════
+//  QUIZ
+// ═══════════════════════════════════════════
+function loadQuestion() {
+  const q = currentQuestions[currentIndex];
+  document.getElementById("qNum").textContent = currentIndex + 1;
+  document.getElementById("progressFill").style.width = `${((currentIndex + 1) / 10) * 100}%`;
+  document.getElementById("qTopic").textContent = q.topic;
+  document.getElementById("qText").textContent = q.q;
+  const container = document.getElementById("optionsContainer");
+  container.innerHTML = "";
+  const letters = ["A","B","C","D"];
+  q.opts.forEach((opt, i) => {
+    const div = document.createElement("div");
+    div.className = "option";
+    if (answers[currentIndex] === i) div.classList.add("selected");
+    div.innerHTML = `<div class="opt-letter">${letters[i]}</div><div>${opt}</div>`;
+    div.onclick = () => selectOption(i);
+    container.appendChild(div);
+  });
+  const nextBtn = document.getElementById("nextBtn");
+  nextBtn.disabled = answers[currentIndex] === -1;
+  nextBtn.textContent = currentIndex === 9 ? "Submit Test ✓" : "Next →";
+  updateAnsweredInfo();
+}
+
+function selectOption(idx) {
+  answers[currentIndex] = idx;
+  const opts = document.querySelectorAll(".option");
+  opts.forEach((o, i) => {
+    o.classList.toggle("selected", i === idx);
+  });
+  document.getElementById("nextBtn").disabled = false;
+  updateAnsweredInfo();
+}
+
+function updateAnsweredInfo() {
+  const answered = answers.filter(a => a !== -1).length;
+  document.getElementById("answeredInfo").textContent = `${answered} / 10 answered`;
+}
+
+function nextQuestion() {
+  if (currentIndex < 9) {
+    currentIndex++;
+    loadQuestion();
+  } else {
+    submitTest();
+  }
+}
+
+// ═══════════════════════════════════════════
+//  SUBMIT & RESULTS
+// ═══════════════════════════════════════════
+function submitTest() {
+  clearInterval(timerInterval);
+  let correct = 0, wrong = 0, skipped = 0;
+  currentQuestions.forEach((q, i) => {
+    if (answers[i] === -1) skipped++;
+    else if (answers[i] === q.ans) correct++;
+    else wrong++;
+  });
+  const score = correct;
+  // save result
+  const result = { name: studentName, score, correct, wrong, skipped, date: new Date().toISOString() };
+  allResults.push(result);
+  localStorage.setItem("cellTestResults", JSON.stringify(allResults));
+  // compute rank
+  const sorted = [...allResults].sort((a,b) => b.score - a.score);
+  const rank = sorted.findIndex(r => r === result) + 1;
+  // display
+  showScreen("resultScreen");
+  document.getElementById("resultName").textContent = `Student: ${studentName}`;
+  document.getElementById("scoreNum").textContent = `${score}`;
+  document.getElementById("scoreDenom").textContent = `out of 10`;
+  document.getElementById("scoreCircle").style.setProperty("--pct", `${(score/10)*360}deg`);
+  document.getElementById("rankVal").textContent = `#${rank} of ${allResults.length}`;
+  document.getElementById("resCorrect").textContent = correct;
+  document.getElementById("resWrong").textContent = wrong;
+  document.getElementById("resSkipped").textContent = skipped;
+  buildSolutions();
+  updateHomeStats();
+}
+
+function buildSolutions() {
+  const container = document.getElementById("solutionsContainer");
+  container.innerHTML = "";
+  const letters = ["A","B","C","D"];
+  currentQuestions.forEach((q, i) => {
+    const userAns = answers[i];
+    const isCorrect = userAns === q.ans;
+    const div = document.createElement("div");
+    div.className = "sol-item";
+    let optsHtml = "";
+    q.opts.forEach((opt, oi) => {
+      let cls = "sol-opt";
+      let icon = "";
+      if (oi === q.ans) { cls += " correct-ans"; icon = "✓ "; }
+      else if (oi === userAns && !isCorrect) { cls += " user-wrong"; icon = "✗ "; }
+      optsHtml += `<div class="${cls}">${icon}${letters[oi]}. ${opt}</div>`;
+    });
+    const userNote = userAns === -1 ? "<em>Skipped</em>" : isCorrect ? "✓ Correct" : `✗ You chose: ${letters[userAns]}`;
+    div.innerHTML = `
+      <div class="sol-q"><strong>Q${i+1}.</strong> ${q.q}</div>
+      <div class="sol-answers">${optsHtml}</div>
+      <div class="sol-explanation"><strong>Your answer:</strong> ${userNote}<br><strong>Explanation:</strong> ${q.exp}</div>`;
+    container.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════
+//  LEADERBOARD
+// ═══════════════════════════════════════════
+function showLeaderboard() {
+  const sorted = [...allResults].sort((a,b) => b.score - a.score || new Date(a.date)-new Date(b.date));
+  const body = document.getElementById("lbBody");
+  body.innerHTML = "";
+  if (sorted.length === 0) {
+    body.innerHTML = `<div class="lb-row"><div colspan="4" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:20px">No attempts yet. Be the first!</div></div>`;
+  } else {
+    sorted.forEach((r, i) => {
+      const rank = i + 1;
+      const rankClass = rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
+      const pct = Math.round((r.score / 10) * 100);
+      const isMe = r.name === studentName && r === [...allResults].sort((a,b) => b.score - a.score)[i];
+      const row = document.createElement("div");
+      row.className = "lb-row" + (isMe ? " highlight" : "");
+      row.innerHTML = `
+        <div class="rank-num ${rankClass}">${rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank}</div>
+        <div>${r.name}</div>
+        <div style="text-align:center">${r.score}/10</div>
+        <div class="score-pct" style="text-align:center">${pct}%</div>`;
+      body.appendChild(row);
+    });
+  }
+  showScreen("lbScreen");
+}
+
+function retakeTest() {
+  document.getElementById("studentName").value = studentName;
+  showScreen("homeScreen");
+  updateHomeStats();
+}
+
+function goHome() {
+  showScreen("homeScreen");
+  updateHomeStats();
+}
+
+// ═══════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+// Init
+updateHomeStats();
+</script>
+</body>
+</html>
